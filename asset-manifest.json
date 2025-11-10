@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/milspec-translator/static/css/main.40058507.css",
+    "main.js": "/milspec-translator/static/js/main.4cdc3cf6.js",
+    "index.html": "/milspec-translator/index.html",
+    "main.40058507.css.map": "/milspec-translator/static/css/main.40058507.css.map",
+    "main.4cdc3cf6.js.map": "/milspec-translator/static/js/main.4cdc3cf6.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.40058507.css",
+    "static/js/main.4cdc3cf6.js"
+  ]
+}
