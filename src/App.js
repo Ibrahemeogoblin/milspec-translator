@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Target, TrendingUp, Award, Users, FileText, ArrowRight, Loader2, Download, Shield, CheckCircle, Star, Zap, BookOpen, Network, DollarSign, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
+import { Briefcase, Target, TrendingUp, Award, Users, FileText, ArrowRight, Loader2, Download, Shield, CheckCircle, Star, Zap, BookOpen, Network, DollarSign, AlertCircle, Sparkles } from 'lucide-react';
 console.log("Gemini API Key Loaded:", process.env.REACT_APP_GOOGLE_API_KEY);
 
 export default function MilSpecTranslator() {
