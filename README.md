@@ -85,4 +85,8 @@ Enable saved translation history for returning users
 
 License
 
+<<<<<<< HEAD
 This project is open-source and available under the MIT License.
+=======
+This project is open-source and available under the MIT License.
+>>>>>>> 36de4dae656ff74b3970ffea9e6778938dc9695d
