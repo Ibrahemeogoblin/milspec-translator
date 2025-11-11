@@ -1,46 +1,88 @@
-# Getting Started with Create React App
+MilSpec Translator
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+MilSpec Translator is a web-based tool that helps veterans convert their military experience into civilian career language. It analyzes military roles, years of service, and specializations, then generates clear and structured career translations for resumes and interviews.
 
-## Available Scripts
+Features
 
-In the project directory, you can run:
+Translates military roles into civilian job titles
 
-### `npm start`
+Highlights key transferable skills and experience
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Provides resume-ready descriptions
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Fast and responsive interface built with React and TailwindCSS
 
-### `npm test`
+Works directly in the browser with Gemini API integration
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Inspiration
 
-### `npm run build`
+Many veterans find it difficult to explain their military background in civilian terms. MilSpec Translator was built to make that process easier and help veterans transition confidently into the workforce.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+How It Works
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Enter your military role, years of service, and specializations.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Click “Translate.”
 
-### `npm run eject`
+The app processes your input and returns a structured civilian translation with key insights.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Technologies Used
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Frontend: React, TailwindCSS
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Language: JavaScript (ES6)
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+API: Google Gemini API
 
-## Learn More
+Hosting: GitHub Pages
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Setup Instructions
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Clone the repository:
+
+git clone https://github.com/yourusername/milspec-translator.git
+
+
+Navigate to the project directory:
+
+cd milspec-translator
+
+
+Install dependencies:
+
+npm install
+
+
+Create a .env file in the root folder and add your Gemini API key:
+
+REACT_APP_GOOGLE_API_KEY=your_api_key_here
+
+
+Start the development server:
+
+npm start
+
+
+Open the app in your browser at:
+
+http://localhost:3000
+
+Challenges Faced
+
+Handling API response formats and ensuring clean JSON parsing
+
+Maintaining accurate translations while keeping the output user-friendly
+
+Designing a simple, professional interface suitable for veterans
+
+Future Improvements
+
+Add support for multiple languages
+
+Include export options for resumes and LinkedIn
+
+Enable saved translation history for returning users
+
+License
+
+This project is open-source and available under the MIT License.
