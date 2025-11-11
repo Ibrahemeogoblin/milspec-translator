@@ -1,24 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Target, TrendingUp, Award, Users, FileText, ArrowRight, Loader2, Download, Shield, CheckCircle, Star, Zap, BookOpen, Network, DollarSign, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
 
-type TranslationResult = {
-  civilianTitles: string[];
-  coreSkills: string[];
-  industries: string[];
-  resumeBullets: string[];
-  certifications: string[];
-  salaryRange: string;
-  careerPath: string;
-  interviewTips: string[];
-  networkingStrategy: string;
-  topCompanies: string[];
-  jobSearchKeywords: string[];
-  strengthsHighlight: string;
-  gapsMitigation: string;
-};
-
-type ExampleRole = { role: string; years: string; spec: string; achieve: string; industry: string };
-
 export default function MilSpecTranslator() {
   const [militaryRole, setMilitaryRole] = useState('');
   const [yearsOfService, setYearsOfService] = useState('');
@@ -26,7 +8,7 @@ export default function MilSpecTranslator() {
   const [achievements, setAchievements] = useState('');
   const [targetIndustry, setTargetIndustry] = useState('');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<TranslationResult | null>(null);
+  const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -70,7 +52,11 @@ export default function MilSpecTranslator() {
     setResults(null);
 
     try {
-      const prompt = `You are an expert military-to-civilian career translator. Analyze this military experience and provide a comprehensive career translation.
+      // For production: Move API key to environment variable
+      const apiKey = AIzaSyC35wKVjFYwl6QYLHEXAvAr1nkzm13hapo;
+      
+      
+      const prompt = `You are an expert military-to-civilian career translator with deep knowledge of both military operations and corporate hiring. Analyze this profile and provide comprehensive career guidance.
 
 MILITARY PROFILE:
 Role: ${militaryRole}
@@ -79,64 +65,59 @@ Skills: ${specializations || 'General military experience'}
 Achievements: ${achievements || 'Standard service record'}
 Target: ${targetIndustry || 'Open to opportunities'}
 
-Respond with ONLY valid JSON (no markdown, no explanation):
+IMPORTANT: Respond with ONLY a valid JSON object (no markdown, no backticks, no explanations):
 {
-  "civilianTitles": ["5-7 civilian job titles"],
-  "coreSkills": ["10-15 transferable skills in civilian terms"],
+  "civilianTitles": ["5-7 specific civilian job titles"],
+  "coreSkills": ["10-15 transferable skills in civilian language"],
   "industries": ["6-8 target industries"],
-  "resumeBullets": ["8-10 resume bullets with metrics and civilian language"],
+  "resumeBullets": ["8-10 quantified resume bullets with civilian terminology"],
   "certifications": ["5-7 relevant certifications"],
-  "salaryRange": "salary range (e.g., $65K-$95K)",
-  "careerPath": "3-5 year career progression description",
-  "interviewTips": ["5 interview tips"],
-  "networkingStrategy": "networking advice paragraph",
+  "salaryRange": "Expected salary range (e.g., $60K-$90K)",
+  "careerPath": "Detailed 3-5 year career progression",
+  "interviewTips": ["5 practical interview tips"],
+  "networkingStrategy": "Specific networking advice for this career",
   "topCompanies": ["8-10 veteran-friendly companies"],
-  "jobSearchKeywords": ["10-12 keywords"],
-  "strengthsHighlight": "unique veteran value proposition",
-  "gapsMitigation": "how to address experience gaps"
+  "jobSearchKeywords": ["10-12 job search keywords"],
+  "strengthsHighlight": "Unique veteran value proposition",
+  "gapsMitigation": "How to address experience gaps"
 }`;
 
-      // Make sure you have your Gemini API key set properly
-const apiKey = process.env.GEMINI_API_KEY || "YOUR_API_KEY_HERE"; // safer than hardcoding
-
-async function generateWithGemini(prompt :string) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: prompt }
-          ]
-        }
-      ]
-    }),
-  });
-
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4000
+          }
+        })
+      });
 
       if (!response.ok) {
         const errorData = await response.text();
         console.error('API Error:', response.status, errorData);
-        throw new Error(`API returned ${response.status}`);
+        throw new Error(`API Error: ${response.status}. Check your API key.`);
       }
 
       const data = await response.json();
       
-      if (!data.content || !data.content[0] || !data.content[0].text) {
-        throw new Error('Invalid response format from API');
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid API response structure');
       }
       
-      let content = data.content[0].text;
+      let content = data.candidates[0].content.parts[0].text;
       
-      // Clean up the response
+      // Clean markdown formatting
       content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       
-      // Find JSON in the response
+      // Extract JSON if wrapped in text
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         content = jsonMatch[0];
@@ -146,7 +127,7 @@ async function generateWithGemini(prompt :string) {
       
       // Validate required fields
       if (!parsed.civilianTitles || !parsed.coreSkills || !parsed.resumeBullets) {
-        throw new Error('Missing required fields in response');
+        throw new Error('Missing required data in response');
       }
       
       setResults(parsed);
@@ -155,19 +136,15 @@ async function generateWithGemini(prompt :string) {
       setTimeout(() => {
         document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    } // end generateWithGemini
-
-    // actually invoke the generator with the prepared prompt
-    await generateWithGemini(prompt);
-  } catch (err: any) {
-    console.error('Translation error:', err);
-    setError(`Translation failed: ${err?.message || String(err)}. Please try again.`);
-  } finally {
+    } catch (err) {
+      console.error('Translation error:', err);
+      setError(`Failed to generate translation: ${err.message}`);
+    } finally {
       setLoading(false);
     }
   };
 
-  const fillExample = (example: ExampleRole) => {
+  const fillExample = (example) => {
     setMilitaryRole(example.role);
     setYearsOfService(example.years);
     setSpecializations(example.spec);
@@ -270,7 +247,7 @@ Veterans & DefenseTech Innovation
     URL.revokeObjectURL(url);
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setShowSuccess(true);
   };
