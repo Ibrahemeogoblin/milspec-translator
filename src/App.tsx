@@ -1,24 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Target, TrendingUp, Award, Users, FileText, ArrowRight, Loader2, Download, Shield, CheckCircle, Star, Zap, BookOpen, Network, DollarSign, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
 
-type TranslationResult = {
-  civilianTitles: string[];
-  coreSkills: string[];
-  industries: string[];
-  resumeBullets: string[];
-  certifications: string[];
-  salaryRange: string;
-  careerPath: string;
-  interviewTips: string[];
-  networkingStrategy: string;
-  topCompanies: string[];
-  jobSearchKeywords: string[];
-  strengthsHighlight: string;
-  gapsMitigation: string;
-};
-
-type ExampleRole = { role: string; years: string; spec: string; achieve: string; industry: string };
-
 export default function MilSpecTranslator() {
   const [militaryRole, setMilitaryRole] = useState('');
   const [yearsOfService, setYearsOfService] = useState('');
@@ -26,7 +8,7 @@ export default function MilSpecTranslator() {
   const [achievements, setAchievements] = useState('');
   const [targetIndustry, setTargetIndustry] = useState('');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<TranslationResult | null>(null);
+  const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -70,6 +52,8 @@ export default function MilSpecTranslator() {
     setResults(null);
 
     try {
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+
       const prompt = `You are an expert military-to-civilian career translator. Analyze this military experience and provide a comprehensive career translation.
 
 MILITARY PROFILE:
@@ -96,78 +80,75 @@ Respond with ONLY valid JSON (no markdown, no explanation):
   "gapsMitigation": "how to address experience gaps"
 }`;
 
-      // Make sure you have your Gemini API key set properly
-const apiKey = process.env.GEMINI_API_KEY || "YOUR_API_KEY_HERE"; // safer than hardcoding
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
 
-async function generateWithGemini(prompt :string) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: prompt }
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
           ]
-        }
-      ]
-    }),
-  });
-
+        }),
+      });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('API Error:', response.status, errorData);
-        throw new Error(`API returned ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      
-      if (!data.content || !data.content[0] || !data.content[0].text) {
-        throw new Error('Invalid response format from API');
+      console.log("✅ Gemini raw response:", data);
+
+      // Safely extract model output text
+      const contentText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!contentText) {
+        console.error('Unable to find response text', JSON.stringify(data, null, 2));
+        throw new Error('Invalid API response format — check console');
       }
-      
-      let content = data.content[0].text;
-      
-      // Clean up the response
-      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      
-      // Find JSON in the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        content = jsonMatch[0];
+
+      console.log("💬 Model output:", contentText);
+
+      // Clean markdown fences
+      const cleanText = contentText.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+
+      // Extract JSON
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('No JSON found:', cleanText);
+        throw new Error('Model did not return JSON');
       }
-      
-      const parsed = JSON.parse(content);
-      
-      // Validate required fields
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Validate
       if (!parsed.civilianTitles || !parsed.coreSkills || !parsed.resumeBullets) {
         throw new Error('Missing required fields in response');
       }
-      
+
       setResults(parsed);
       setShowSuccess(true);
-      
+
       setTimeout(() => {
         document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    } // end generateWithGemini
 
-    // actually invoke the generator with the prepared prompt
-    await generateWithGemini(prompt);
-  } catch (err: any) {
-    console.error('Translation error:', err);
-    setError(`Translation failed: ${err?.message || String(err)}. Please try again.`);
-  } finally {
+    } catch (err) {
+      console.error('Translation error:', err);
+      setError(`Translation failed: ${err.message}`);
+    } finally {
       setLoading(false);
     }
   };
 
-  const fillExample = (example: ExampleRole) => {
+  const fillExample = (example) => {
     setMilitaryRole(example.role);
     setYearsOfService(example.years);
     setSpecializations(example.spec);
@@ -270,14 +251,13 @@ Veterans & DefenseTech Innovation
     URL.revokeObjectURL(url);
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setShowSuccess(true);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-8">
-      {/* Success Toast */}
       {showSuccess && (
         <div className="fixed top-4 right-4 bg-green-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 animate-pulse">
           <CheckCircle className="w-6 h-6" />
@@ -286,7 +266,6 @@ Veterans & DefenseTech Innovation
       )}
 
       <div className="max-w-7xl mx-auto">
-        {/* Hero Header */}
         <div className="text-center mb-12 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 via-transparent to-amber-500/20 blur-3xl -z-10"></div>
           
@@ -314,7 +293,6 @@ Veterans & DefenseTech Innovation
           </p>
         </div>
 
-        {/* Stats Banner */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-amber-500/30 text-center">
             <div className="text-3xl font-bold text-amber-400">10K+</div>
@@ -334,7 +312,6 @@ Veterans & DefenseTech Innovation
           </div>
         </div>
 
-        {/* Input Section */}
         <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 mb-8 border border-amber-500/30 shadow-2xl">
           <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-amber-400">
             <Target className="w-8 h-8" />
@@ -460,10 +437,8 @@ Veterans & DefenseTech Innovation
           </div>
         </div>
 
-        {/* Results Section */}
         {results && (
           <div id="results-section" className="space-y-6">
-            {/* Action Buttons */}
             <div className="flex flex-wrap gap-4 justify-center mb-8">
               <button
                 onClick={downloadResume}
@@ -481,7 +456,6 @@ Veterans & DefenseTech Innovation
               </button>
             </div>
 
-            {/* Civilian Job Titles */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-amber-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-amber-400">
                 <Briefcase className="w-8 h-8" />
@@ -499,7 +473,6 @@ Veterans & DefenseTech Innovation
               </div>
             </div>
 
-            {/* Core Skills */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-amber-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-amber-400">
                 <Award className="w-8 h-8" />
@@ -517,7 +490,6 @@ Veterans & DefenseTech Innovation
               </div>
             </div>
 
-            {/* Target Industries */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-amber-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-amber-400">
                 <TrendingUp className="w-8 h-8" />
@@ -532,7 +504,6 @@ Veterans & DefenseTech Innovation
               </div>
             </div>
 
-            {/* Resume Bullets */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-green-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-green-400">
                 <FileText className="w-8 h-8" />
@@ -549,7 +520,6 @@ Veterans & DefenseTech Innovation
               </div>
             </div>
 
-            {/* Certifications */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-blue-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-blue-400">
                 <BookOpen className="w-8 h-8" />
@@ -569,7 +539,6 @@ Veterans & DefenseTech Innovation
               </div>
             </div>
 
-            {/* Interview Tips */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-purple-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-purple-400">
                 <Users className="w-8 h-8" />

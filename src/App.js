@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Target, TrendingUp, Award, Users, FileText, ArrowRight, Loader2, Download, Shield, CheckCircle, Star, Zap, BookOpen, Network, DollarSign, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
+console.log("Gemini API Key Loaded:", process.env.REACT_APP_GOOGLE_API_KEY);
 
 export default function MilSpecTranslator() {
   const [militaryRole, setMilitaryRole] = useState('');
@@ -42,107 +43,85 @@ export default function MilSpecTranslator() {
   }, [showSuccess]);
 
   const translateMilitary = async () => {
-    if (!militaryRole.trim()) {
-      setError('Please enter your military role');
-      return;
-    }
+  if (!militaryRole.trim()) {
+    setError('Please enter your military role');
+    return;
+  }
 
-    setLoading(true);
-    setError('');
-    setResults(null);
+  setLoading(true);
+  setError('');
+  setResults(null);
 
-    try {
-      // For production: Move API key to environment variable
-      const apiKey = AIzaSyC35wKVjFYwl6QYLHEXAvAr1nkzm13hapo;
-      
-      
-      const prompt = `You are an expert military-to-civilian career translator with deep knowledge of both military operations and corporate hiring. Analyze this profile and provide comprehensive career guidance.
+  try {
+    const systemPrompt = 'You are an elite military career transition specialist with 20+ years of experience placing veterans in Fortune 500 companies. You understand both military culture and corporate hiring processes deeply. Always respond with valid JSON only, no markdown formatting.';
+
+    const userPrompt = `Conduct a comprehensive military-to-civilian career translation with actionable, specific insights.
 
 MILITARY PROFILE:
-Role: ${militaryRole}
-Years: ${yearsOfService || 'Not specified'}
-Skills: ${specializations || 'General military experience'}
-Achievements: ${achievements || 'Standard service record'}
-Target: ${targetIndustry || 'Open to opportunities'}
+Role/MOS: ${militaryRole}
+Years of Service: ${yearsOfService || 'Not specified'}
+Specializations: ${specializations || 'Not specified'}
+Key Achievements: ${achievements || 'Not specified'}
+Target Industry: ${targetIndustry || 'Open to opportunities'}
 
-IMPORTANT: Respond with ONLY a valid JSON object (no markdown, no backticks, no explanations):
+Provide a JSON response with this EXACT structure (no markdown, no backticks, pure JSON):
 {
-  "civilianTitles": ["5-7 specific civilian job titles"],
-  "coreSkills": ["10-15 transferable skills in civilian language"],
-  "industries": ["6-8 target industries"],
-  "resumeBullets": ["8-10 quantified resume bullets with civilian terminology"],
-  "certifications": ["5-7 relevant certifications"],
-  "salaryRange": "Expected salary range (e.g., $60K-$90K)",
-  "careerPath": "Detailed 3-5 year career progression",
-  "interviewTips": ["5 practical interview tips"],
-  "networkingStrategy": "Specific networking advice for this career",
-  "topCompanies": ["8-10 veteran-friendly companies"],
-  "jobSearchKeywords": ["10-12 job search keywords"],
-  "strengthsHighlight": "Unique veteran value proposition",
-  "gapsMitigation": "How to address experience gaps"
-}`;
+  "civilianTitles": ["5-7 specific civilian job titles with real market demand"],
+  "coreSkills": ["10-15 transferable skills translated to civilian terminology with context"],
+  "industries": ["6-8 industries actively hiring for these skills"],
+  "resumeBullets": ["8-10 powerful, quantified resume bullets using civilian language and action verbs"],
+  "certifications": ["5-7 industry-recognized certifications with priority levels"],
+  "salaryRange": "Realistic salary range with entry to mid-level progression",
+  "careerPath": "Detailed 3-5 year career progression path with specific milestones",
+  "interviewTips": ["5 specific tips for translating military experience in interviews"],
+  "networkingStrategy": "Specific networking approach for this career path",
+  "topCompanies": ["8-10 companies known for hiring veterans in this field"],
+  "jobSearchKeywords": ["10-12 keywords to use in job searches and LinkedIn"],
+  "strengthsHighlight": "2-3 sentences on unique value propositions veterans bring",
+  "gapsMitigation": "How to address potential experience gaps or concerns"
+}
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+Be extremely specific, use real numbers, focus on measurable impact, and provide actionable guidance. Translate ALL military jargon to corporate language.`;
+
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 4000
-          }
-        })
-      });
+          contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+          generationConfig: { temperature: 0.8, maxOutputTokens: 3000 },
+        }),
+      }
+    );
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('API Error:', response.status, errorData);
-        throw new Error(`API Error: ${response.status}. Check your API key.`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error('Invalid API response structure');
-      }
-      
-      let content = data.candidates[0].content.parts[0].text;
-      
-      // Clean markdown formatting
-      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      
-      // Extract JSON if wrapped in text
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        content = jsonMatch[0];
-      }
-      
-      const parsed = JSON.parse(content);
-      
-      // Validate required fields
-      if (!parsed.civilianTitles || !parsed.coreSkills || !parsed.resumeBullets) {
-        throw new Error('Missing required data in response');
-      }
-      
-      setResults(parsed);
-      setShowSuccess(true);
-      
-      setTimeout(() => {
-        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } catch (err) {
-      console.error('Translation error:', err);
-      setError(`Failed to generate translation: ${err.message}`);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('API Error Details:', errorData);
+      throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
-  };
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error('No content in API response');
+
+    const cleanContent = content.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanContent);
+
+    setResults(parsed);
+    setShowSuccess(true);
+    setTimeout(() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+  } catch (err) {
+    console.error('Translation error:', err);
+    setError(`Translation failed: ${err.message}. Please check the console for details.`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const fillExample = (example) => {
     setMilitaryRole(example.role);
@@ -438,26 +417,25 @@ Veterans & DefenseTech Innovation
         </div>
 
         {/* Results Section */}
-        {results && (
-          <div id="results-section" className="space-y-6">
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-4 justify-center mb-8">
-              <button
-                onClick={downloadResume}
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-xl transition-all inline-flex items-center gap-3 text-lg shadow-xl hover:shadow-green-900/50 hover:scale-105"
-              >
-                <Download className="w-6 h-6" />
-                Download Full Report
-              </button>
-              <button
-                onClick={() => copyToClipboard(results.resumeBullets.join('\n\n'))}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all inline-flex items-center gap-3 text-lg shadow-xl hover:shadow-blue-900/50 hover:scale-105"
-              >
-                <FileText className="w-6 h-6" />
-                Copy Resume Bullets
-              </button>
-            </div>
-
+{results && (
+  <div id="results-section" className="space-y-6">
+    {/* Action Buttons */}
+    <div className="flex flex-wrap gap-4 justify-center mb-8">
+      <button
+        onClick={downloadResume}
+        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-xl transition-all inline-flex items-center gap-3 text-lg shadow-xl hover:shadow-green-900/50 hover:scale-105"
+      >
+        <Download className="w-6 h-6" />
+        Download Full Report
+      </button>
+      <button
+        onClick={() => copyToClipboard(results.resumeBullets.join('\n\n'))}
+        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all inline-flex items-center gap-3 text-lg shadow-xl hover:shadow-blue-900/50 hover:scale-105"
+      >
+        <FileText className="w-6 h-6" />
+        Copy Resume Bullets
+      </button>
+    </div>
             {/* Civilian Job Titles */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-amber-500/40 shadow-2xl">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-amber-400">
@@ -527,24 +505,27 @@ Veterans & DefenseTech Innovation
             </div>
 
             {/* Certifications */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-blue-500/40 shadow-2xl">
-              <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-blue-400">
-                <BookOpen className="w-8 h-8" />
-                Recommended Certifications
-              </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                {results.certifications.map((cert, i) => (
-                  <div key={i} className="bg-gradient-to-br from-slate-900 to-slate-800 border-2 border-slate-600 hover:border-blue-500 rounded-xl p-6 transition-all hover:shadow-lg hover:shadow-blue-900/30">
-                    <div className="flex items-start gap-3">
-                      <div className="bg-blue-500/20 rounded-lg p-2 flex-shrink-0">
-                        <Award className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <p className="font-bold text-gray-100 text-lg leading-relaxed">{cert}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+<div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-blue-500/40 shadow-2xl">
+  <h3 className="text-3xl font-black mb-6 flex items-center gap-3 text-blue-400">
+    <BookOpen className="w-8 h-8" />
+    Recommended Certifications
+  </h3>
+  <div className="grid md:grid-cols-2 gap-4">
+    {results.certifications.map((cert, i) => (
+      <div key={i} className="bg-gradient-to-br from-slate-900 to-slate-800 border-2 border-slate-600 hover:border-blue-500 rounded-xl p-6 transition-all hover:shadow-lg hover:shadow-blue-900/30">
+        <div className="flex items-start gap-3">
+          <div className="bg-blue-500/20 rounded-lg p-2 flex-shrink-0">
+            <Award className="w-5 h-5 text-blue-400" />
+          </div>
+          <p className="font-bold text-gray-100 text-lg leading-relaxed">
+            {cert.name} {cert.priority ? `(${cert.priority})` : ''}
+          </p>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
 
             {/* Interview Tips */}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border-2 border-purple-500/40 shadow-2xl">
